@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import asyncio
+import json
 from anthropic import AsyncAnthropic
 from fastapi.responses import StreamingResponse
 
@@ -30,5 +31,10 @@ async def ask(question: str):
             messages=[{"role": "user", "content": question}],
         ) as stream:
             async for text in stream.text_stream:
-                yield text
-    return StreamingResponse(generate(), media_type="text/plain")
+                yield json.dumps({"text": text, "type": "text"}) + "\n"
+            usage = stream.current_message_snapshot.usage
+            yield json.dumps({"type": "usage",
+                              "input_tokens": usage.input_tokens,
+                              "output_tokens": usage.output_tokens
+                              }) + "\n"
+    return StreamingResponse(generate(), media_type="application/x-ndjson")
