@@ -7,6 +7,18 @@ from fastapi.responses import StreamingResponse
 
 from pydantic import BaseModel
 
+RESEARCH_SYSTEM_PROMPT = [
+    {
+        "type": "text",
+        "text": (
+            "You are a research assistant that breaks down complex research "
+            "questions into clear, well-scoped sub-questions suitable for "
+            "independent investigation."
+        ),
+        "cache_control": {"type": "ephemeral"},
+    }
+]
+
 
 class ResearchPlan(BaseModel):
     sub_questions: list[str]
@@ -58,6 +70,7 @@ async def plan(question: str):
     response = await client.messages.parse(
         model="claude-sonnet-5",
         max_tokens=1024,
+        system=RESEARCH_SYSTEM_PROMPT,
         messages=[{
             "role": "user",
             "content": f"Break down this research question into 3-5 sub-questions: {question}",
