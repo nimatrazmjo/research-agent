@@ -27,11 +27,17 @@ async def ask(question: str):
     async def generate():
         async with client.messages.stream(
             model="claude-sonnet-5",
-            max_tokens=1024,
+            max_tokens=4096,
             messages=[{"role": "user", "content": question}],
+            thinking={"type": "adaptive", "display": "summarized"},
+            output_config={"effort": "max"},
         ) as stream:
-            async for text in stream.text_stream:
-                yield json.dumps({"text": text, "type": "text"}) + "\n"
+            async for event in stream:
+                if event.type == "content_block_delta":
+                    if event.delta.type == "thinking_delta":
+                        yield json.dumps({"type": "thinking", "text": event.delta.thinking}) + "\n"
+                    elif event.delta.type == "text_delta":
+                        yield json.dumps({"type": "text", "text": event.delta.text}) + "\n"
             usage = stream.current_message_snapshot.usage
             yield json.dumps({"type": "usage",
                               "input_tokens": usage.input_tokens,

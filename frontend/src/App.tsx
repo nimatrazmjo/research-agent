@@ -5,6 +5,7 @@ import "./App.css";
 export default function App() {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
+  const [thinking, setThinking] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [usage, setUsage] = useState<{ input_tokens: number; output_tokens: number } | null>(null);
@@ -21,6 +22,8 @@ export default function App() {
     if (!q || isStreaming) return;
 
     setAnswer("");
+    setThinking("");
+    setUsage(null);
     setIsStreaming(true);
     try {
       const response = await fetch(
@@ -37,7 +40,9 @@ export default function App() {
         for (const line of chunk.split("\n")) {
           if (!line.trim()) continue;
           const data = JSON.parse(line);
-          if (data.type === "text") {
+          if (data.type === "thinking") {
+            setThinking((prev) => prev + data.text);
+          } else if (data.type === "text") {
             setAnswer((prev) => prev + data.text);
           } else if (data.type === "usage") {
             setUsage({
@@ -62,6 +67,12 @@ export default function App() {
   return (
     <div className="page">
       <div className="chat">
+        {thinking && (
+          <details className="thinking">
+            <summary>Thinking</summary>
+            <p>{thinking}</p>
+          </details>
+        )}
         {answer && (
           <div className="answer">
             <p>{answer}</p>
