@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import asyncio
 import json
 from anthropic import AsyncAnthropic
 from fastapi.responses import StreamingResponse
@@ -20,6 +19,15 @@ RESEARCH_SYSTEM_PROMPT = [
 ]
 
 
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
+
+class AskRequest(BaseModel):
+    messages: list[ChatMessage]
+
+
 class ResearchPlan(BaseModel):
     sub_questions: list[str]
 
@@ -30,7 +38,7 @@ client = AsyncAnthropic()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:5173", "http://localhost:5174", "http://localhost:5175"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -41,16 +49,18 @@ async def health():
     return {"status": "ok"}
 
 
-@app.get("/api/ask")
-async def ask(question: str):
+@app.post("/api/ask")
+async def ask(request: AskRequest):
     async def generate():
         yield json.dumps({"type": "log", "level": "info", "text": "Sending request to Claude..."}) + "\n"
         yield json.dumps({"type": "progress", "value": 10, "total": 100, "message": "Waiting for response..."}) + "\n"
 
+        messages = [{"role": m.role, "content": m.content} for m in request.messages]
+
         async with client.messages.stream(
             model="claude-sonnet-5",
             max_tokens=4096,
-            messages=[{"role": "user", "content": question}],
+            messages=messages,
             thinking={"type": "adaptive", "display": "summarized"},
             output_config={"effort": "max"},
         ) as stream:
