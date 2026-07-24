@@ -1,0 +1,32 @@
+:root {
+  --color-bg: #f7f6f3;
+  --color-surface: #fff;
+  --color-border: #e8e5e0;
+  --color-border-input: #d6d2cc;
+  --color-text: #1a1a1a;
+  --color-text-muted: #666;
+  --color-text-faint: #aaa;
+  --color-ink: #1a1a1a;
+  --color-ink-hover: #333;
+  --color-disabled: #ccc;
+  --radius-bubble: 16px;
+  --radius-sm: 8px;
+  --radius-btn: 10px;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
