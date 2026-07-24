@@ -5,6 +5,13 @@ import json
 from anthropic import AsyncAnthropic
 from fastapi.responses import StreamingResponse
 
+from pydantic import BaseModel
+
+
+class ResearchPlan(BaseModel):
+    sub_questions: list[str]
+
+
 app = FastAPI()
 client = AsyncAnthropic()
 
@@ -44,3 +51,17 @@ async def ask(question: str):
                               "output_tokens": usage.output_tokens
                               }) + "\n"
     return StreamingResponse(generate(), media_type="application/x-ndjson")
+
+
+@app.get("/api/plan")
+async def plan(question: str):
+    response = await client.messages.parse(
+        model="claude-sonnet-5",
+        max_tokens=1024,
+        messages=[{
+            "role": "user",
+            "content": f"Break down this research question into 3-5 sub-questions: {question}",
+        }],
+        output_format=ResearchPlan,
+    )
+    return response.parsed_output
