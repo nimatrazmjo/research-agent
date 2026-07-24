@@ -44,6 +44,9 @@ async def health():
 @app.get("/api/ask")
 async def ask(question: str):
     async def generate():
+        yield json.dumps({"type": "log", "level": "info", "text": "Sending request to Claude..."}) + "\n"
+        yield json.dumps({"type": "progress", "value": 10, "total": 100, "message": "Waiting for response..."}) + "\n"
+
         async with client.messages.stream(
             model="claude-sonnet-5",
             max_tokens=4096,
@@ -52,12 +55,22 @@ async def ask(question: str):
             output_config={"effort": "max"},
         ) as stream:
             async for event in stream:
-                if event.type == "content_block_delta":
+                if event.type == "content_block_start":
+                    if event.content_block.type == "thinking":
+                        yield json.dumps({"type": "log", "level": "info", "text": "Claude is thinking..."}) + "\n"
+                        yield json.dumps({"type": "progress", "value": 30, "total": 100, "message": "Thinking..."}) + "\n"
+                    elif event.content_block.type == "text":
+                        yield json.dumps({"type": "log", "level": "info", "text": "Generating response..."}) + "\n"
+                        yield json.dumps({"type": "progress", "value": 70, "total": 100, "message": "Writing response..."}) + "\n"
+                elif event.type == "content_block_delta":
                     if event.delta.type == "thinking_delta":
                         yield json.dumps({"type": "thinking", "text": event.delta.thinking}) + "\n"
                     elif event.delta.type == "text_delta":
                         yield json.dumps({"type": "text", "text": event.delta.text}) + "\n"
+
             usage = stream.current_message_snapshot.usage
+            yield json.dumps({"type": "progress", "value": 100, "total": 100, "message": "Done"}) + "\n"
+            yield json.dumps({"type": "log", "level": "info", "text": "Response complete."}) + "\n"
             yield json.dumps({"type": "usage",
                               "input_tokens": usage.input_tokens,
                               "output_tokens": usage.output_tokens

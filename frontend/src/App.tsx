@@ -6,6 +6,8 @@ export default function App() {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [thinking, setThinking] = useState("");
+  const [logs, setLogs] = useState<string[]>([]);
+  const [progress, setProgress] = useState<number | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [usage, setUsage] = useState<{ input_tokens: number; output_tokens: number } | null>(null);
@@ -24,6 +26,8 @@ export default function App() {
     setAnswer("");
     setThinking("");
     setUsage(null);
+    setLogs([]);
+    setProgress(null);
     setIsStreaming(true);
     try {
       const response = await fetch(
@@ -44,6 +48,10 @@ export default function App() {
             setThinking((prev) => prev + data.text);
           } else if (data.type === "text") {
             setAnswer((prev) => prev + data.text);
+          } else if (data.type === "log") {
+            setLogs((prev) => [...prev, data.text]);
+          } else if (data.type === "progress") {
+            setProgress(data.total ? Math.round((data.value / data.total) * 100) : data.value);
           } else if (data.type === "usage") {
             setUsage({
               input_tokens: data.input_tokens,
@@ -54,6 +62,7 @@ export default function App() {
       }
     } finally {
       setIsStreaming(false);
+      setProgress(null);
     }
   }
 
@@ -67,6 +76,20 @@ export default function App() {
   return (
     <div className="page">
       <div className="chat">
+        {(progress !== null || logs.length > 0) && (
+          <div className="status">
+            {progress !== null && (
+              <div className="progress-bar">
+                <div className="progress-fill" style={{ width: `${progress}%` }} />
+              </div>
+            )}
+            {logs.length > 0 && (
+              <ul className="log-list">
+                {logs.map((msg, i) => <li key={i}>{msg}</li>)}
+              </ul>
+            )}
+          </div>
+        )}
         {thinking && (
           <details className="thinking">
             <summary>Thinking</summary>
